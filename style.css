@@ -1,0 +1,185 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: #0a0a0a;
+    color: #ffffff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 100%;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #1a1a1a;
+    border-radius: 15px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: 300;
+}
+
+h2 {
+    margin-bottom: 15px;
+    color: #4fc3f7;
+}
+
+.main-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+button {
+    background: #2d2d2d;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #3d3d3d;
+}
+
+button:active {
+    background: #4d4d4d;
+}
+
+.section {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+.hidden {
+    display: none;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    background: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+}
+
+.result {
+    margin-top: 15px;
+    padding: 15px;
+    background: #2d2d2d;
+    border-radius: 8px;
+    font-family: monospace;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+#chat-messages {
+    height: 300px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #2d2d2d;
+    border-radius: 8px;
+}
+
+.message {
+    margin: 10px 0;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.user-message {
+    background: #2d4d7d;
+    text-align: right;
+}
+
+.bot-message {
+    background: #2d5d2d;
+}
+
+.currency-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 15px 0;
+}
+
+.currency-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    margin: 5px 0;
+    background: #2a2a2a;
+    border-radius: 6px;
+}
+
+.currency-code {
+    font-weight: bold;
+    color: #4fc3f7;
+}
+
+.currency-value {
+    font-family: 'Courier New', monospace;
+}
+
+.currency-change {
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.positive {
+    color: #4caf50;
+}
+
+.negative {
+    color: #f44336;
+}
+
+#last-update {
+    font-size: 12px;
+    color: #888;
+    text-align: center;
+    margin-top: 5px;
+}
+
+.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.note-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px;
+    margin: 5px 0;
+    background: #2a2a2a;
+    border-radius: 6px;
+}
+
+.timer-active {
+    color: #4caf50;
+    font-weight: bold;
+}

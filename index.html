@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Assistant MiniApp</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Tech Assistant</h1>
+            <div id="last-update"></div>
+        </header>
+
+        <div class="main-menu">
+            <button onclick="showSection('math')">🧮 Математика</button>
+            <button onclick="showSection('currency')">💱 Курсы валют</button>
+            <button onclick="showSection('notes')">📝 Заметки</button>
+            <button onclick="showSection('timer')">⏰ Таймер</button>
+        </div>
+
+        <div id="math-section" class="section hidden">
+            <h2>🧮 Решение уравнений</h2>
+            <input type="text" id="equation-input" placeholder="Введите уравнение (например: x^2 - 4 = 0)">
+            <button onclick="solveEquation()">Решить</button>
+            <div id="math-result" class="result"></div>
+        </div>
+
+        <div id="currency-section" class="section hidden">
+            <h2>💱 Курсы ЦБ РФ</h2>
+            <div class="currency-controls">
+                <button onclick="getCBRrates()">🔄 Обновить курсы</button>
+                <button onclick="startAutoUpdate()">⏰ Автообновление (60 сек)</button>
+                <button onclick="stopAutoUpdate()">⏹️ Остановить</button>
+            </div>
+            <div id="currency-result" class="result"></div>
+            <div id="currency-info"></div>
+        </div>
+
+        <div id="notes-section" class="section hidden">
+            <h2>📝 Заметки</h2>
+            <input type="text" id="note-input" placeholder="Введите заметку...">
+            <button onclick="addNote()">Добавить</button>
+            <div id="notes-list" class="result"></div>
+        </div>
+
+        <div id="timer-section" class="section hidden">
+            <h2>⏰ Таймер</h2>
+            <input type="number" id="timer-minutes" placeholder="Минуты" min="1" max="60">
+            <button onclick="startTimer()">Запустить таймер</button>
+            <div id="timer-display" class="result"></div>
+        </div>
+
+        <div id="chat-section" class="section">
+            <h2>💬 Чат с ИИ</h2>
+            <div id="chat-messages"></div>
+            <div class="input-group">
+                <input type="text" id="message-input" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Отправить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
