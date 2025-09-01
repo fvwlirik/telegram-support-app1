@@ -1,30 +1,189 @@
 let tg = window.Telegram.WebApp;
-let autoUpdateInterval = null;
-let lastRates = {};
-let notes = JSON.parse(localStorage.getItem('notes')) || [];
 let activeTimer = null;
+let timerInterval = null;
+let timerPaused = false;
+let timeLeft = 0;
+let notes = JSON.parse(localStorage.getItem('notes')) || [];
+let chatHistory = [];
 
 // Инициализация
 tg.expand();
 tg.enableClosingConfirmation();
+
+// DeepSeek API конфигурация
+const DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"; // Замените на ваш ключ
+const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 function showSection(sectionName) {
     document.querySelectorAll('.section').forEach(section => {
         section.classList.add('hidden');
     });
     document.getElementById(sectionName + '-section').classList.remove('hidden');
+    document.getElementById('main-menu').classList.add('hidden');
+}
+
+function showMainMenu() {
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('hidden');
+    });
+    document.getElementById('main-menu').classList.remove('hidden');
+}
+
+// ================== МАТЕМАТИКА ==================
+function switchMathTab(tabName) {
+    document.querySelectorAll('.math-tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
-    if (sectionName === 'currency') {
-        getCBRrates();
-    } else if (sectionName === 'notes') {
-        displayNotes();
+    document.getElementById(tabName + '-tab').classList.remove('hidden');
+    document.querySelector(`button[onclick="switchMathTab('${tabName}')"]`).classList.add('active');
+}
+
+// Калькулятор
+function addToCalc(value) {
+    const input = document.getElementById('calc-input');
+    input.value += value;
+}
+
+function clearCalc() {
+    document.getElementById('calc-input').value = '';
+    document.getElementById('calc-result').innerHTML = '';
+}
+
+function calculate() {
+    const input = document.getElementById('calc-input');
+    const expression = input.value.replace(/\^/g, '**');
+    
+    try {
+        const result = math.evaluate(expression);
+        document.getElementById('calc-result').innerHTML = 
+            `<strong>Результат:</strong> ${result}`;
+    } catch (error) {
+        document.getElementById('calc-result').innerHTML = 
+            `<strong class="error">Ошибка:</strong> ${error.message}`;
     }
 }
 
-// ================== КУРСЫ ЦБ РФ ==================
+// Решение уравнений
+async function solveEquation() {
+    const equation = document.getElementById('equation-input').value;
+    if (!equation) return;
+
+    const stepsDiv = document.getElementById('equation-steps');
+    const resultDiv = document.getElementById('equation-result');
+    
+    stepsDiv.innerHTML = '<div class="loading">🔍 Анализируем уравнение...</div>';
+    
+    try {
+        // Простое решение через math.js
+        const cleanEquation = equation.replace(/=/g, '==').replace(/\^/g, '**');
+        
+        stepsDiv.innerHTML = `
+            <div class="step">1. Уравнение: ${equation}</div>
+            <div class="step">2. Приводим к стандартному виду</div>
+        `;
+        
+        // Пытаемся решить символьно
+        let solutions;
+        try {
+            const expr = math.parse(cleanEquation);
+            solutions = math.solve(expr, 'x');
+            
+            stepsDiv.innerHTML += `
+                <div class="step">3. Найдены решения: ${JSON.stringify(solutions)}</div>
+            `;
+            
+        } catch (symbolError) {
+            // Численное решение
+            stepsDiv.innerHTML += `
+                <div class="step">3. Символьное решение невозможно, используем численные методы</div>
+            `;
+            
+            // Простая численная реализация
+            solutions = [];
+            for (let x = -10; x <= 10; x += 0.1) {
+                try {
+                    const left = equation.split('=')[0].trim();
+                    const right = equation.split('=')[1].trim();
+                    const leftVal = math.evaluate(left.replace(/x/g, x));
+                    const rightVal = math.evaluate(right.replace(/x/g, x));
+                    
+                    if (Math.abs(leftVal - rightVal) < 0.001) {
+                        solutions.push(math.round(x, 2));
+                    }
+                } catch (e) {}
+            }
+            
+            solutions = [...new Set(solutions)]; // Убираем дубликаты
+        }
+        
+        if (solutions && solutions.length > 0) {
+            resultDiv.innerHTML = `
+                <strong class="success">✅ Решено!</strong><br>
+                <strong>Корни:</strong> ${solutions.join(', ')}
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <strong class="error">❌ Решений не найдено</strong>
+            `;
+        }
+        
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <strong class="error">Ошибка:</strong> ${error.message}
+        `;
+    }
+}
+
+// Построение графиков
+function plotFunction() {
+    const funcInput = document.getElementById('function-input').value;
+    if (!funcInput) return;
+
+    try {
+        const xValues = [];
+        const yValues = [];
+        
+        for (let x = -10; x <= 10; x += 0.1) {
+            try {
+                const y = math.evaluate(funcInput.replace(/x/g, `(${x})`));
+                xValues.push(x);
+                yValues.push(y);
+            } catch (e) {}
+        }
+        
+        const trace = {
+            x: xValues,
+            y: yValues,
+            type: 'scatter',
+            mode: 'lines',
+            line: {color: '#4fc3f7', width: 2}
+        };
+        
+        const layout = {
+            plot_bgcolor: '#1a1a1a',
+            paper_bgcolor: '#1a1a1a',
+            font: {color: '#ffffff'},
+            xaxis: {gridcolor: '#3d3d3d'},
+            yaxis: {gridcolor: '#3d3d3d'},
+            margin: {l: 40, r: 40, t: 30, b: 40}
+        };
+        
+        Plotly.newPlot('graph-container', [trace], layout);
+        
+    } catch (error) {
+        document.getElementById('graph-container').innerHTML = `
+            <div class="error">Ошибка построения графика: ${error.message}</div>
+        `;
+    }
+}
+
+// ================== КУРСЫ ВАЛЮТ ==================
 async function getCBRrates() {
     const resultDiv = document.getElementById('currency-result');
-    const infoDiv = document.getElementById('currency-info');
     
     resultDiv.innerHTML = '<div class="loading">🔄 Загрузка курсов ЦБ РФ...</div>';
     
@@ -44,15 +203,13 @@ async function getCBRrates() {
             'CNY': data.Valute.CNY,
             'CHF': data.Valute.CHF,
             'TRY': data.Valute.TRY,
-            'KZT': data.Valute.KZT,
-            'UAH': data.Valute.UAH,
-            'BYN': data.Valute.BYN
+            'KZT': data.Valute.KZT
         };
         
         let html = '<div class="currency-list">';
         
         for (const [code, currency] of Object.entries(currencies)) {
-            const change = calculateChange(currency.Value, currency.Previous);
+            const change = currency.Value - currency.Previous;
             const changeClass = change >= 0 ? 'positive' : 'negative';
             const changeSymbol = change >= 0 ? '↗' : '↘';
             
@@ -70,80 +227,13 @@ async function getCBRrates() {
         html += '</div>';
         resultDiv.innerHTML = html;
         
-        const updateDate = new Date(data.Date);
-        infoDiv.innerHTML = `
-            <div style="margin-top: 15px; font-size: 12px; color: #888;">
-                📅 Курсы ЦБ РФ на ${updateDate.toLocaleDateString('ru-RU')}<br>
-                ⏰ Обновлено: ${updateDate.toLocaleTimeString('ru-RU')}
-            </div>
-        `;
-        
-        document.getElementById('last-update').textContent = 
-            `Последнее обновление: ${new Date().toLocaleTimeString('ru-RU')}`;
-        
-        lastRates = currencies;
-        
     } catch (error) {
         resultDiv.innerHTML = `
-            <div style="color: #f44336;">
+            <div class="error">
                 ❌ Ошибка загрузки курсов ЦБ<br>
                 <small>${error.message}</small>
             </div>
         `;
-    }
-}
-
-function calculateChange(current, previous) {
-    return current - previous;
-}
-
-function startAutoUpdate() {
-    if (autoUpdateInterval) {
-        clearInterval(autoUpdateInterval);
-    }
-    
-    autoUpdateInterval = setInterval(() => {
-        getCBRrates();
-        tg.showPopup({
-            title: 'Обновление',
-            message: 'Курсы валют обновлены',
-            buttons: [{type: 'ok'}]
-        });
-    }, 60000);
-    
-    tg.showPopup({
-        title: 'Автообновление',
-        message: 'Курсы будут обновляться каждые 60 секунд',
-        buttons: [{type: 'ok'}]
-    });
-}
-
-function stopAutoUpdate() {
-    if (autoUpdateInterval) {
-        clearInterval(autoUpdateInterval);
-        autoUpdateInterval = null;
-        tg.showPopup({
-            title: 'Автообновление',
-            message: 'Автообновление остановлено',
-            buttons: [{type: 'ok'}]
-        });
-    }
-}
-
-// ================== МАТЕМАТИКА ==================
-async function solveEquation() {
-    const equation = document.getElementById('equation-input').value;
-    if (!equation) return;
-
-    try {
-        // Простое решение уравнений (можно подключить math.js)
-        const cleanEquation = equation.replace(/x/g, '*').replace(/\^/g, '**');
-        const result = eval(cleanEquation);
-        document.getElementById('math-result').innerHTML = 
-            `<strong>Результат:</strong><br>${result}`;
-    } catch (error) {
-        document.getElementById('math-result').innerHTML = 
-            `<strong>Ошибка:</strong><br>${error.message}`;
     }
 }
 
@@ -156,7 +246,7 @@ function addNote() {
         notes.push({
             id: Date.now(),
             text: noteText,
-            date: new Date().toLocaleString()
+            date: new Date().toLocaleString('ru-RU')
         });
         
         localStorage.setItem('notes', JSON.stringify(notes));
@@ -169,21 +259,30 @@ function displayNotes() {
     const notesList = document.getElementById('notes-list');
     
     if (notes.length === 0) {
-        notesList.innerHTML = 'Заметок пока нет';
+        notesList.innerHTML = '📝 Заметок пока нет';
         return;
     }
     
     let html = '';
-    notes.forEach(note => {
+    notes.forEach((note, index) => {
         html += `
             <div class="note-item">
                 <span>${note.text}</span>
-                <small>${note.date}</small>
+                <div>
+                    <small>${note.date}</small>
+                    <button onclick="deleteNote(${index})" style="margin-left:10px; padding:2px 5px;">✕</button>
+                </div>
             </div>
         `;
     });
     
     notesList.innerHTML = html;
+}
+
+function deleteNote(index) {
+    notes.splice(index, 1);
+    localStorage.setItem('notes', JSON.stringify(notes));
+    displayNotes();
 }
 
 // ================== ТАЙМЕР ==================
@@ -199,41 +298,59 @@ function startTimer() {
         clearInterval(activeTimer);
     }
     
-    const endTime = Date.now() + minutes * 60000;
-    const timerDisplay = document.getElementById('timer-display');
+    timerPaused = false;
+    timeLeft = minutes * 60;
+    updateTimerDisplay();
     
     activeTimer = setInterval(() => {
-        const timeLeft = endTime - Date.now();
-        
-        if (timeLeft <= 0) {
-            clearInterval(activeTimer);
-            timerDisplay.innerHTML = '<span class="timer-active">⏰ Время вышло!</span>';
-            tg.showPopup({
-                title: 'Таймер',
-                message: 'Время вышло!',
-                buttons: [{type: 'ok'}]
-            });
-            return;
+        if (!timerPaused) {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 0) {
+                clearInterval(activeTimer);
+                tg.showPopup({
+                    title: '⏰ Таймер',
+                    message: 'Время вышло!',
+                    buttons: [{type: 'ok'}]
+                });
+            }
         }
-        
-        const minutesLeft = Math.floor(timeLeft / 60000);
-        const secondsLeft = Math.floor((timeLeft % 60000) / 1000);
-        
-        timerDisplay.innerHTML = `
-            <span class="timer-active">
-                Осталось: ${minutesLeft}:${secondsLeft.toString().padStart(2, '0')}
-            </span>
-        `;
     }, 1000);
 }
 
-// ================== ЧАТ ==================
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
-        sendMessage();
+function pauseTimer() {
+    timerPaused = !timerPaused;
+    updateTimerDisplay();
+}
+
+function resetTimer() {
+    if (activeTimer) {
+        clearInterval(activeTimer);
+    }
+    timerPaused = false;
+    timeLeft = 0;
+    updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+    const timerDisplay = document.getElementById('timer-display');
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    
+    if (timeLeft > 0) {
+        timerDisplay.innerHTML = `
+            <div class="${timerPaused ? 'timer-paused' : 'timer-active'}">
+                ⏰ ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}
+                ${timerPaused ? ' (Пауза)' : ''}
+            </div>
+        `;
+    } else {
+        timerDisplay.innerHTML = '⏰ Таймер не активен';
     }
 }
 
+// ================== DEEPSEEK ЧАТ ==================
 async function sendMessage() {
     const input = document.getElementById('message-input');
     const message = input.value.trim();
@@ -241,11 +358,57 @@ async function sendMessage() {
 
     addMessage(message, 'user');
     input.value = '';
-
-    // Имитация ответа ИИ
-    setTimeout(() => {
-        addMessage('Это демо-версия чата. В полной версии будет интегрирован DeepSeek AI', 'bot');
-    }, 1000);
+    
+    // Показываем индикатор загрузки
+    const loadingMessage = addMessage('🤖 Думаю...', 'bot');
+    
+    try {
+        const response = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: [
+                    ...chatHistory,
+                    {role: "user", content: message}
+                ],
+                temperature: 0.7,
+                max_tokens: 2000
+            })
+        });
+        
+        const data = await response.json();
+        
+        // Убираем индикатор загрузки
+        loadingMessage.remove();
+        
+        if (data.choices && data.choices[0]) {
+            const botResponse = data.choices[0].message.content;
+            addMessage(botResponse, 'bot');
+            
+            // Сохраняем в историю
+            chatHistory.push(
+                {role: "user", content: message},
+                {role: "assistant", content: botResponse}
+            );
+            
+            // Ограничиваем историю последними 10 сообщениями
+            if (chatHistory.length > 20) {
+                chatHistory = chatHistory.slice(-20);
+            }
+            
+        } else {
+            addMessage('❌ Ошибка получения ответа от AI', 'bot');
+        }
+        
+    } catch (error) {
+        loadingMessage.remove();
+        addMessage('❌ Ошибка подключения к DeepSeek API', 'bot');
+        console.error('DeepSeek API error:', error);
+    }
 }
 
 function addMessage(text, sender) {
@@ -255,12 +418,25 @@ function addMessage(text, sender) {
     messageDiv.textContent = text;
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    return messageDiv;
 }
 
-// Инициализация при загрузке
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+// ================== ИНИЦИАЛИЗАЦИЯ ==================
 document.addEventListener('DOMContentLoaded', function() {
-    getCBRrates();
+    // Инициализация математических вкладок
+    switchMathTab('calculator');
+    
+    // Загрузка заметок
     displayNotes();
+    
+    // Загрузка курсов валют
+    getCBRrates();
     
     // Автообновление курсов каждые 5 минут
     setInterval(getCBRrates, 300000);
