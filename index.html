@@ -3,62 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tech Assistant MiniApp</title>
+    <title>FvW_AI Assistant</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.8.0/lib/browser/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist@2.24.1/plotly.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🤖 Tech Assistant</h1>
-            <div id="last-update"></div>
+            <h1>🔷 FvW_AI</h1>
         </header>
 
-        <div class="main-menu">
-            <button onclick="showSection('math')">🧮 Математика</button>
-            <button onclick="showSection('currency')">💱 Курсы валют</button>
-            <button onclick="showSection('notes')">📝 Заметки</button>
-            <button onclick="showSection('timer')">⏰ Таймер</button>
+        <div id="main-menu" class="section">
+            <div class="main-menu">
+                <button onclick="showSection('math')">🧮 Математика</button>
+                <button onclick="showSection('currency')">💱 Курсы валют</button>
+                <button onclick="showSection('notes')">📝 Заметки</button>
+                <button onclick="showSection('timer')">⏰ Таймер</button>
+                <button onclick="showSection('chat')">💬 Чат с ИИ</button>
+            </div>
         </div>
 
         <div id="math-section" class="section hidden">
-            <h2>🧮 Решение уравнений</h2>
-            <input type="text" id="equation-input" placeholder="Введите уравнение (например: x^2 - 4 = 0)">
-            <button onclick="solveEquation()">Решить</button>
-            <div id="math-result" class="result"></div>
+            <div class="section-header">
+                <button class="back-button" onclick="showMainMenu()">◀ Назад</button>
+                <h2>🧮 Математика</h2>
+            </div>
+            
+            <div class="math-tabs">
+                <button class="tab-btn active" onclick="switchMathTab('calculator')">Калькулятор</button>
+                <button class="tab-btn" onclick="switchMathTab('equation')">Уравнения</button>
+                <button class="tab-btn" onclick="switchMathTab('graph')">Графики</button>
+            </div>
+
+            <div id="calculator-tab" class="math-tab-content">
+                <div class="calculator-grid">
+                    <input type="text" id="calc-input" placeholder="Введите выражение" readonly>
+                    <div class="calc-buttons">
+                        <button onclick="addToCalc('7')">7</button>
+                        <button onclick="addToCalc('8')">8</button>
+                        <button onclick="addToCalc('9')">9</button>
+                        <button onclick="addToCalc('/')">/</button>
+                        
+                        <button onclick="addToCalc('4')">4</button>
+                        <button onclick="addToCalc('5')">5</button>
+                        <button onclick="addToCalc('6')">6</button>
+                        <button onclick="addToCalc('*')">×</button>
+                        
+                        <button onclick="addToCalc('1')">1</button>
+                        <button onclick="addToCalc('2')">2</button>
+                        <button onclick="addToCalc('3')">3</button>
+                        <button onclick="addToCalc('-')">-</button>
+                        
+                        <button onclick="addToCalc('0')">0</button>
+                        <button onclick="addToCalc('.')">.</button>
+                        <button onclick="calculate()">=</button>
+                        <button onclick="addToCalc('+')">+</button>
+                        
+                        <button onclick="addToCalc('(')">(</button>
+                        <button onclick="addToCalc(')')">)</button>
+                        <button onclick="addToCalc('^')">^</button>
+                        <button onclick="clearCalc()">C</button>
+                    </div>
+                </div>
+                <div id="calc-result" class="result"></div>
+            </div>
+
+            <div id="equation-tab" class="math-tab-content hidden">
+                <input type="text" id="equation-input" placeholder="Введите уравнение (например: x^2 - 4 = 0)">
+                <button onclick="solveEquation()">Решить уравнение</button>
+                <div id="equation-steps" class="result"></div>
+                <div id="equation-result" class="result"></div>
+            </div>
+
+            <div id="graph-tab" class="math-tab-content hidden">
+                <input type="text" id="function-input" placeholder="Введите функцию (например: sin(x))">
+                <button onclick="plotFunction()">Построить график</button>
+                <div id="graph-container" style="width:100%; height:300px;"></div>
+            </div>
         </div>
 
         <div id="currency-section" class="section hidden">
-            <h2>💱 Курсы ЦБ РФ</h2>
+            <div class="section-header">
+                <button class="back-button" onclick="showMainMenu()">◀ Назад</button>
+                <h2>💱 Курсы валют</h2>
+            </div>
             <div class="currency-controls">
                 <button onclick="getCBRrates()">🔄 Обновить курсы</button>
-                <button onclick="startAutoUpdate()">⏰ Автообновление (60 сек)</button>
-                <button onclick="stopAutoUpdate()">⏹️ Остановить</button>
             </div>
             <div id="currency-result" class="result"></div>
-            <div id="currency-info"></div>
         </div>
 
         <div id="notes-section" class="section hidden">
-            <h2>📝 Заметки</h2>
+            <div class="section-header">
+                <button class="back-button" onclick="showMainMenu()">◀ Назад</button>
+                <h2>📝 Заметки</h2>
+            </div>
             <input type="text" id="note-input" placeholder="Введите заметку...">
             <button onclick="addNote()">Добавить</button>
             <div id="notes-list" class="result"></div>
         </div>
 
         <div id="timer-section" class="section hidden">
-            <h2>⏰ Таймер</h2>
-            <input type="number" id="timer-minutes" placeholder="Минуты" min="1" max="60">
-            <button onclick="startTimer()">Запустить таймер</button>
+            <div class="section-header">
+                <button class="back-button" onclick="showMainMenu()">◀ Назад</button>
+                <h2>⏰ Таймер</h2>
+            </div>
+            <input type="number" id="timer-minutes" placeholder="Минуты" min="1" max="240">
+            <div class="timer-controls">
+                <button onclick="startTimer()">▶ Запустить</button>
+                <button onclick="pauseTimer()">⏸️ Пауза</button>
+                <button onclick="resetTimer()">⏹️ Сброс</button>
+            </div>
             <div id="timer-display" class="result"></div>
+            <div id="timer-history"></div>
         </div>
 
-        <div id="chat-section" class="section">
-            <h2>💬 Чат с ИИ</h2>
+        <div id="chat-section" class="section hidden">
+            <div class="section-header">
+                <button class="back-button" onclick="showMainMenu()">◀ Назад</button>
+                <h2>💬 Чат с DeepSeek AI</h2>
+            </div>
             <div id="chat-messages"></div>
             <div class="input-group">
                 <input type="text" id="message-input" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Отправить</button>
+                <button onclick="sendMessage()">➤</button>
             </div>
         </div>
     </div>
